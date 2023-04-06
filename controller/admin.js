@@ -2,7 +2,7 @@ const Product = require('../model/Product')
 
 exports.createProduct = (req,res,next) => {
     const name = req.body.name
-    const imageUrl = 'images/e3.jpg'
+    const imageUrl = req.file.path.toString().replace(/\\/g, '/');
     const description = req.body.description
     const price = req.body.price
     const creator = {name:'Chamodi'}
