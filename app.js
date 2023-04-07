@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const app = express()
 const mongoose = require('mongoose')
 const adminRoutes = require('./routes/admin')
+const shopRoutes = require('./routes/shop')
+const authRoutes = require('./routes/auth')
 const multer = require('multer')
 
 const fileStorage = multer.diskStorage({
@@ -50,8 +52,9 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   next();
 });
-
+app.use('/user',authRoutes)
 app.use('/admin',adminRoutes)
+app.use('/shop',shopRoutes)
 
 
 mongoose
