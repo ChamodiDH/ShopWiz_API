@@ -8,6 +8,7 @@ const shopRoutes = require('./routes/shop')
 const authRoutes = require('./routes/auth')
 const multer = require('multer')
 
+
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'images');

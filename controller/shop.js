@@ -1,5 +1,6 @@
 
 const Product = require('../model/Product')
+const User = require('../model/User')
 
 exports.getProducts = (req,res,next) => {
     Product.find().then(
@@ -62,3 +63,31 @@ exports.filterProducts = (req,res,next) => {
         }
      ).catch(err => console.log(err))
 }
+
+exports.addTocart = (req,res,next) => {
+    const userId = req.userId
+    const productId = req.body.productId
+    Product.findById(productId).then(
+        product => {
+            if(!product){
+                console.log('Product not found')
+            }
+
+           User.findById(userId).then(
+            user => {
+                let pq = {
+                    productId: product,
+                    quantity: 1
+                }
+                user.cart.items.push(pq)
+                user.save()
+                res.status(200).json({
+                    message:"Product added to the cart",
+                    user:user
+                })
+            }
+           ).catch(err => console.log(err))
+        }
+    ).catch(err => console.log(err))
+}
+
