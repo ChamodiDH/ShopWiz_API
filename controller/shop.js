@@ -91,3 +91,17 @@ exports.addTocart = (req,res,next) => {
     ).catch(err => console.log(err))
 }
 
+exports.getCart = (req, res, next) => {
+    const userId = req.userId;
+  
+    User.findById(userId)
+      .populate('cart.items.productId').exec().then(
+        user => {
+            const products = user.cart.items;
+            res.status(200).json({
+                cartitems:products
+            })
+        }
+      ).catch(err => console.log(err))
+      
+  };
