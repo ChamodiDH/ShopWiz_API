@@ -93,6 +93,8 @@ exports.addTocart = (req,res,next) => {
 
 exports.getCart = (req, res, next) => {
     const userId = req.userId;
+    console.log(userId)
+
   
     User.findById(userId)
       .populate('cart.items.productId').exec().then(
@@ -105,3 +107,25 @@ exports.getCart = (req, res, next) => {
       ).catch(err => console.log(err))
       
   };
+
+exports.removeCartProduct = (req,res,next) => {
+    const userId = req.userId;
+    console.log(userId)
+
+    const productId = req.body.productId
+ 
+
+    User.findById(userId).then(
+        user => {
+            const updatedItems = user.cart.items.filter(item => {
+                return item.productId.toString() !== productId.toString()
+            })
+            user.cart.items = updatedItems;
+            user.save();
+            res.status(200).json({
+                message: "Item removed from your cart",
+                items:updatedItems
+            })
+        }
+    ).catch(err => console.log(err))
+}
