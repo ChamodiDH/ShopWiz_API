@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport(
     sendgridTransport({
         auth: {
             api_key:
-                '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'
+                //''
         }
     })
 );
@@ -237,7 +237,7 @@ exports.postOrder = (req, res, next) => {
         )
         return transporter.sendMail({
             to: 'binky@mailinator.com',
-            from: 'chamodi3797@gmail.com',
+           // from: 'chamodi3797@gmail.com',
             subject: 'Your Order Placed Successfully',
             html: `
     <h1>You have placed the order successfully</h1>
