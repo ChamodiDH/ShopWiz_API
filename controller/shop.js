@@ -3,6 +3,17 @@ const Product = require('../model/Product')
 const User = require('../model/User')
 const Order = require('../model/Order')
 const stripe = require('stripe')('sk_test_51MwIOaHbUCWkFhTGDGfTvEn7bpUZfSAYKpkOe98GjzVbamkwYZd5GoRL4IB0OFF0ab3su0qbJbDpWFYK84LCoyCC00Z1EUL4cj');
+const nodemailer = require('nodemailer');
+const sendgridTransport = require('nodemailer-sendgrid-transport');
+
+const transporter = nodemailer.createTransport(
+    sendgridTransport({
+        auth: {
+            api_key:
+                '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'
+        }
+    })
+);
 
 exports.getProducts = (req, res, next) => {
     Product.find().then(
@@ -154,31 +165,33 @@ exports.getCheckout = (req, res, next) => {
                 line_items: products.map(p => {
                     return {
                         price_data: {
-                          currency: 'usd',
-                          //mode: 'payment',
-                          product_data: {
-                            name: p.productId.name,
-                            description: p.productId.description,
-                          },
-                          unit_amount: p.productId.price * 100,
+                            currency: 'usd',
+                            //mode: 'payment',
+                            product_data: {
+                                name: p.productId.name,
+                                description: p.productId.description,
+                            },
+                            unit_amount: p.productId.price * 100,
                         },
                         quantity: p.quantity
-                       // mode: 'payment'
-                      }
+                        // mode: 'payment'
+                    }
                 }),
                 success_url: req.protocol + '://' + req.get('host') + '/shop/cart/orderp?userId=' + userId, // => http://localhost:3000
                 cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancel'
             })
 
 
-        }).then(session => {res.status(200).json(
-            {
-                message: "Stripe session intialized",
-                sessionId: session.id,
-                sessionURL:session.url
-            }
-        )}
-            
+        }).then(session => {
+            res.status(200).json(
+                {
+                    message: "Stripe session intialized",
+                    sessionId: session.id,
+                    sessionURL: session.url
+                }
+            )
+        }
+
         ).catch(err => console.log(err))
 
 
@@ -190,9 +203,10 @@ exports.getCheckout = (req, res, next) => {
 
 exports.postOrder = (req, res, next) => {
     const userId = req.query.userId
+    let orderedItems
     User.findById(userId).populate('cart.items.productId').exec().then(
         user => {
-            const orderedItems = user.cart.items.map(i => {
+            orderedItems = user.cart.items.map(i => {
                 return {
                     quantity: i.quantity,
                     product: { ...i.productId._doc }
@@ -221,6 +235,18 @@ exports.postOrder = (req, res, next) => {
         }
 
         )
+        return transporter.sendMail({
+            to: 'binky@mailinator.com',
+            from: 'chamodi3797@gmail.com',
+            subject: 'Your Order Placed Successfully',
+            html: `
+    <h1>You have placed the order successfully</h1>
+    <p>Here are the details of your order:</p>
+    <ul>
+      ${orderedItems.map(item => `<li>${item.product.name} (${item.quantity}) - $${item.product.price}</li>`).join('')}
+    </ul>
+  `
+        })
     }).then(
         result => {
             return User.findById(userId).then(user => {

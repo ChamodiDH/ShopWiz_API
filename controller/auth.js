@@ -2,6 +2,17 @@
 
 const User = require('../model/User');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const sendgridTransport = require('nodemailer-sendgrid-transport');
+
+const transporter = nodemailer.createTransport(
+    sendgridTransport({
+      auth: {
+        api_key:
+          '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'
+      }
+    })
+  );
 
 exports.signUp = (req,res,next) =>{
     const email = req.body.email
@@ -22,7 +33,15 @@ exports.signUp = (req,res,next) =>{
                 message:'User is successfully registered',
                 user:user
             })
+
+            return transporter.sendMail({
+                to: email,
+                from: 'chamodi3797@gmail.com',
+                subject: 'Signup succeeded!',
+                html: '<h1>You successfully signed up!</h1>'
+              })
         }
+        
     ).catch(err => {
         console.log('Failed to register the user')
         console.log(err)
