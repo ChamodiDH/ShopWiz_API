@@ -166,7 +166,7 @@ exports.getCheckout = (req, res, next) => {
                        // mode: 'payment'
                       }
                 }),
-                success_url: req.protocol + '://' + req.get('host') + '/shop/cart/orderp', // => http://localhost:3000
+                success_url: req.protocol + '://' + req.get('host') + '/shop/cart/orderp?userId=' + userId, // => http://localhost:3000
                 cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancel'
             })
 
@@ -189,7 +189,7 @@ exports.getCheckout = (req, res, next) => {
 }
 
 exports.postOrder = (req, res, next) => {
-    const userId = req.userId
+    const userId = req.query.userId
     User.findById(userId).populate('cart.items.productId').exec().then(
         user => {
             const orderedItems = user.cart.items.map(i => {
@@ -206,7 +206,7 @@ exports.postOrder = (req, res, next) => {
                     products: orderedItems,
                     user: {
                         email: user.email,
-                        userId: req.userId
+                        userId: req.query.userId
                     }
                 }
             )
