@@ -5,22 +5,52 @@ const Order = require('../model/Order')
 const stripe = require('stripe')('sk_test_51MwIOaHbUCWkFhTGDGfTvEn7bpUZfSAYKpkOe98GjzVbamkwYZd5GoRL4IB0OFF0ab3su0qbJbDpWFYK84LCoyCC00Z1EUL4cj');
 const nodemailer = require('nodemailer');
 const sendgridTransport = require('nodemailer-sendgrid-transport');
+const ITEMS_PER_PAGE = 2;
 
-const transporter = nodemailer.createTransport(
-    sendgridTransport({
-        auth: {
-            api_key:
-                //''
-        }
-    })
-);
+// const transporter = nodemailer.createTransport(
+//     sendgridTransport({
+//         auth: {
+//             api_key:
+//                
+//         }
+//     })
+// );
+
+//skip pages and limit the items per page
+const skipPages = (arr,page) => {
+    const number = ((page-1) * ITEMS_PER_PAGE) -1
+    console.log(number)
+    const newarr = arr.filter( a => { return arr.indexOf(a) > number} )
+    const unarr = []
+    console.log(newarr)
+    unarr.push(...newarr.slice(0,2))
+    console.log(unarr)
+    return unarr
+
+    
+}
 
 exports.getProducts = (req, res, next) => {
-    Product.find().then(
+    const page = +req.query.page || 1
+    let totalItems
+
+
+    Product.find().countDocuments().then(
+        numofProducts => {
+            totalItems = numofProducts
+            return Product.find().skip((page -1 ) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE)
+        }
+    ).then(
         products => {
             res.status(200).json({
                 message: "products fetched successfully",
-                products: products
+                products: products,
+                currentPage:page,
+                hasNextPage:ITEMS_PER_PAGE * page < totalItems,
+                hasPreviousPage:page>1,
+                nextPage:page+1,
+                previousPage:page-1,
+                lastPage:Math.ceil(totalItems/ITEMS_PER_PAGE)
             }
             )
         }
@@ -45,7 +75,12 @@ exports.getProduct = (req, res, next) => {
 
 exports.filterProducts = (req, res, next) => {
     const { name, maxPrice } = req.query
-    Product.find().then(
+    Product.find().countDocuments().then(
+        numofProducts => {
+            totalItems = numofProducts
+            return Product.find().skip((page -1 ) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE)
+        }
+    ).then(
         products => {
             if (name) {
                 products = products.filter(product => product.name === name)
@@ -68,7 +103,13 @@ exports.filterProducts = (req, res, next) => {
 
                     {
                         message: 'Filtered',
-                        products: products
+                        products: products,
+                        currentPage:page,
+                        hasNextPage:ITEMS_PER_PAGE * page < totalItems,
+                        hasPreviousPage:page>1,
+                        nextPage:page+1,
+                        previousPage:page-1,
+                        lastPage:Math.ceil(totalItems/ITEMS_PER_PAGE)
                     }
                 )
             }
@@ -106,6 +147,7 @@ exports.addTocart = (req, res, next) => {
 
 exports.getCart = (req, res, next) => {
     const userId = req.userId;
+    const page = +req.query.page || 1
     console.log(userId)
 
 
@@ -113,8 +155,20 @@ exports.getCart = (req, res, next) => {
         .populate('cart.items.productId').exec().then(
             user => {
                 const products = user.cart.items;
+                console.log(products)
+                const count = products.length
+                const totalItems = count
+                const sortedProducts = skipPages(products,page)
                 res.status(200).json({
-                    cartitems: products
+                    cartitems:sortedProducts,
+                    count:count,
+                    currentPage:page,
+                    hasNextPage:ITEMS_PER_PAGE * page < totalItems,
+                    hasPreviousPage:page>1,
+                    nextPage:page+1,
+                    previousPage:page-1,
+                    lastPage:Math.ceil(totalItems/ITEMS_PER_PAGE)
+                   
                 })
             }
         ).catch(err => console.log(err))
@@ -235,18 +289,18 @@ exports.postOrder = (req, res, next) => {
         }
 
         )
-        return transporter.sendMail({
-            to: 'binky@mailinator.com',
-           // from: 'chamodi3797@gmail.com',
-            subject: 'Your Order Placed Successfully',
-            html: `
-    <h1>You have placed the order successfully</h1>
-    <p>Here are the details of your order:</p>
-    <ul>
-      ${orderedItems.map(item => `<li>${item.product.name} (${item.quantity}) - $${item.product.price}</li>`).join('')}
-    </ul>
-  `
-        })
+//         return transporter.sendMail({
+//             to: 'binky@mailinator.com',
+//            from: 'chamodi3797@gmail.com',
+//             subject: 'Your Order Placed Successfully',
+//             html: `
+//     <h1>You have placed the order successfully</h1>
+//     <p>Here are the details of your order:</p>
+//     <ul>
+//       ${orderedItems.map(item => `<li>${item.product.name} (${item.quantity}) - $${item.product.price}</li>`).join('')}
+//     </ul>
+//   `
+//         })
     }).then(
         result => {
             return User.findById(userId).then(user => {
@@ -259,12 +313,25 @@ exports.postOrder = (req, res, next) => {
 
 exports.getOrders = (req, res, next) => {
     const userId = req.userId
+    const page = +req.query.page || 1
 
-    Order.find({ 'user.userId': userId }).then(
+    Order.find({ 'user.userId': userId }).countDocuments().then(
+        numofOrders => {
+            totalItems =  numofOrders
+            return Order.find({ 'user.userId': userId }).skip((page -1 ) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE)
+        }
+    ).then(
         orders => {
             res.status(200).json({
                 message: 'Here are your orders',
-                orders
+                totalOrders:totalItems,
+                orders:orders,
+                hasNextPage:ITEMS_PER_PAGE * page < totalItems,
+                hasPreviousPage:page>1,
+                nextPage:page+1,
+                previousPage:page-1,
+                lastPage:Math.ceil(totalItems/ITEMS_PER_PAGE)
+            
             })
         }
     ).catch(err => console.log(err))

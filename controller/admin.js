@@ -1,5 +1,5 @@
 const Product = require('../model/Product')
-
+const ITEMS_PER_PAGE = 2;
 exports.createProduct = (req,res,next) => {
     const name = req.body.name
     const imageUrl = req.file.path.toString().replace(/\\/g, '/');
@@ -36,12 +36,27 @@ exports.createProduct = (req,res,next) => {
 
 }
 
-exports.getProducts = (req,res,next) => {
-    Product.find().then(
+exports.getProducts = (req, res, next) => {
+    const page = +req.query.page || 1
+    let totalItems
+
+
+    Product.find().countDocuments().then(
+        numofProducts => {
+            totalItems = numofProducts
+            return Product.find().skip((page -1 ) * ITEMS_PER_PAGE).limit(ITEMS_PER_PAGE)
+        }
+    ).then(
         products => {
             res.status(200).json({
-                message:"products fetched successfully",
-                products:products
+                message: "products fetched successfully",
+                products: products,
+                currentPage:page,
+                hasNextPage:ITEMS_PER_PAGE * page < totalItems,
+                hasPreviousPage:page>1,
+                nextPage:page+1,
+                previousPage:page-1,
+                lastPage:Math.ceil(totalItems/ITEMS_PER_PAGE)
             }
             )
         }
