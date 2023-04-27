@@ -4,6 +4,8 @@ const User = require('../model/User');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const sendgridTransport = require('nodemailer-sendgrid-transport');
+const { validationResult } = require('express-validator');
+
 
 // const transporter = nodemailer.createTransport(
 //     sendgridTransport({
@@ -19,6 +21,20 @@ exports.signUp = (req,res,next) =>{
     const password = req.body.password
     const name = req.body.name
     const type = req.body.type
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()){
+        console.log(errors.array());
+        return res.status(422).json({
+            errorMessage: errors.array()[0].msg,
+            oldInput: {
+              email: email,
+              password: password,
+              confirmPassword: req.body.confirmPassword
+            },
+            validationErrors: errors.array()
+        });
+    }
 
     const user = new User({
         email: email,
@@ -52,6 +68,17 @@ exports.login = (req,res,next) => {
     const email = req.body.email
     const password = req.body.password
     let loadedUser 
+    const errors = validationResult(req);
+  if (!errors.isEmpty()){
+    return res.status(422).json({
+        errorMessage: errors.array()[0].msg,
+      oldInput: {
+        email: email,
+        password: password
+      },
+      validationErrors: errors.array()
+    })
+  }
 
     User.findOne({email:email}).then(
         user => {
